@@ -117,41 +117,16 @@ class NotificationService {
     // Cancel existing first to be safe (or caller should do it)
     await cancelAllMedicineReminders(id);
 
+    final List<Future<void>> futures = [];
+
     for (int i = 0; i < reminders.length; i++) {
       final time = reminders[i];
 
       if (weekdays == null || weekdays.isEmpty || weekdays.length == 7) {
         // Daily
         final notificationId = (id * 1000) + i;
-        await AwesomeNotifications().createNotification(
-          content: NotificationContent(
-            id: notificationId,
-            channelKey: 'medication_channel',
-            title: title,
-            body: body,
-            notificationLayout: NotificationLayout.Default,
-            category: NotificationCategory.Alarm,
-            wakeUpScreen: true,
-            fullScreenIntent: true,
-            autoDismissible: false,
-            payload: {'medicineId': id.toString()},
-          ),
-          schedule: NotificationCalendar(
-            hour: time.hour,
-            minute: time.minute,
-            second: 0,
-            millisecond: 0,
-            timeZone: localTimeZone,
-            repeats: true,
-            allowWhileIdle: true,
-            preciseAlarm: true,
-          ),
-        );
-      } else {
-        // Specific weekdays
-        for (final day in weekdays) {
-          final notificationId = (id * 1000) + (day * 10) + i;
-          await AwesomeNotifications().createNotification(
+        futures.add(
+          AwesomeNotifications().createNotification(
             content: NotificationContent(
               id: notificationId,
               channelKey: 'medication_channel',
@@ -162,10 +137,13 @@ class NotificationService {
               wakeUpScreen: true,
               fullScreenIntent: true,
               autoDismissible: false,
-              payload: {'medicineId': id.toString()},
+              payload: {
+                'medicineId': id.toString(),
+                'reminderHour': time.hour.toString(),
+                'reminderMinute': time.minute.toString(),
+              },
             ),
             schedule: NotificationCalendar(
-              weekday: day,
               hour: time.hour,
               minute: time.minute,
               second: 0,
@@ -175,25 +153,71 @@ class NotificationService {
               allowWhileIdle: true,
               preciseAlarm: true,
             ),
+          ),
+        );
+      } else {
+        // Specific weekdays
+        for (final day in weekdays) {
+          final notificationId = (id * 1000) + (day * 10) + i;
+          futures.add(
+            AwesomeNotifications().createNotification(
+              content: NotificationContent(
+                id: notificationId,
+                channelKey: 'medication_channel',
+                title: title,
+                body: body,
+                notificationLayout: NotificationLayout.Default,
+                category: NotificationCategory.Alarm,
+                wakeUpScreen: true,
+                fullScreenIntent: true,
+                autoDismissible: false,
+                payload: {
+                  'medicineId': id.toString(),
+                  'reminderHour': time.hour.toString(),
+                  'reminderMinute': time.minute.toString(),
+                },
+              ),
+              schedule: NotificationCalendar(
+                weekday: day,
+                hour: time.hour,
+                minute: time.minute,
+                second: 0,
+                millisecond: 0,
+                timeZone: localTimeZone,
+                repeats: true,
+                allowWhileIdle: true,
+                preciseAlarm: true,
+              ),
+            ),
           );
         }
       }
     }
+
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
   }
 
   static Future<void> cancelAllMedicineReminders(int id) async {
+    final List<Future<void>> futures = [];
+
     // Cancel daily versions (0-99)
     for (int i = 0; i < 100; i++) {
-      await AwesomeNotifications().cancel((id * 1000) + i);
+      futures.add(AwesomeNotifications().cancel((id * 1000) + i));
     }
     // Cancel weekday versions (10-79)
     for (int day = 1; day <= 7; day++) {
       for (int i = 0; i < 10; i++) {
-        await AwesomeNotifications().cancel((id * 1000) + (day * 10) + i);
+        futures.add(
+          AwesomeNotifications().cancel((id * 1000) + (day * 10) + i),
+        );
       }
     }
     // Also cancel old style ID (if it was just 'id')
-    await AwesomeNotifications().cancel(id);
+    futures.add(AwesomeNotifications().cancel(id));
+
+    await Future.wait(futures);
   }
 
   static Future<void> cancelNotification(int id) async {
@@ -299,10 +323,29 @@ class NotificationService {
         final medicine = box.get(medicineId);
         if (medicine != null) {
           final now = DateTime.now();
-          bool alreadyTaken = medicine.log.any(
-            (d) =>
-                d.year == now.year && d.month == now.month && d.day == now.day,
-          );
+          final payload = receivedNotification.payload;
+          final rHour = int.tryParse(payload?['reminderHour'] ?? '');
+          final rMinute = int.tryParse(payload?['reminderMinute'] ?? '');
+
+          bool alreadyTaken;
+          if (rHour != null && rMinute != null) {
+            alreadyTaken = medicine.log.any(
+              (d) =>
+                  d.year == now.year &&
+                  d.month == now.month &&
+                  d.day == now.day &&
+                  d.hour == rHour &&
+                  d.minute == rMinute,
+            );
+          } else {
+            // Fallback to day-only for old notifications
+            alreadyTaken = medicine.log.any(
+              (d) =>
+                  d.year == now.year &&
+                  d.month == now.month &&
+                  d.day == now.day,
+            );
+          }
           if (alreadyTaken) {
             debugPrint('Medicine $medicineId already taken, skipping nags.');
             return;

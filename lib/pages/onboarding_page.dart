@@ -245,7 +245,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButtonFormField<String>(
-                            initialValue: _selectedUnit,
+                            value: _selectedUnit,
                             isExpanded: true,
                             decoration: const InputDecoration(
                               border: InputBorder.none,

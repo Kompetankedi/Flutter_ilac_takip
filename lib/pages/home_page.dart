@@ -142,19 +142,28 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  bool _isTakenToday(Medicine medicine) {
+  bool _isTakenToday(Medicine medicine, ReminderTime reminder) {
     final now = DateTime.now();
     return medicine.log.any(
       (date) =>
           date.year == now.year &&
           date.month == now.month &&
-          date.day == now.day,
+          date.day == now.day &&
+          date.hour == reminder.hour &&
+          date.minute == reminder.minute,
     );
   }
 
-  void _toggleTaken(Medicine medicine, bool? value) async {
+  void _toggleTaken(
+    Medicine medicine,
+    ReminderTime reminder,
+    bool? value,
+  ) async {
     if (value == true) {
-      medicine.log.add(DateTime.now());
+      final now = DateTime.now();
+      medicine.log.add(
+        DateTime(now.year, now.month, now.day, reminder.hour, reminder.minute),
+      );
       await medicine.save();
       if (medicine.key != null) {
         await NotificationService.cancelNaggingNotifications(
@@ -167,7 +176,9 @@ class _HomePageState extends State<HomePage> {
         (date) =>
             date.year == now.year &&
             date.month == now.month &&
-            date.day == now.day,
+            date.day == now.day &&
+            date.hour == reminder.hour &&
+            date.minute == reminder.minute,
       );
       await medicine.save();
     }
@@ -207,432 +218,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showMedicineDialog({Medicine? medicineToEdit}) {
-    final bool isEditing = medicineToEdit != null;
-    final nameController = TextEditingController(
-      text: isEditing ? medicineToEdit.name : '',
-    );
-
-    final List<ReminderTime> initialReminders = isEditing
-        ? (medicineToEdit.reminders ??
-              [
-                ReminderTime(
-                  hour: medicineToEdit.hour,
-                  minute: medicineToEdit.minute,
-                ),
-              ])
-        : [ReminderTime(hour: 9, minute: 0)];
-
-    final List<int> initialWeekdays = isEditing
-        ? (medicineToEdit.weekdays ?? [])
-        : [];
-
-    String initialAmount = '';
-    String initialUnit = 'Tablet';
-
-    if (isEditing) {
-      final parts = medicineToEdit.amount.split(' ');
-      if (parts.isNotEmpty) initialAmount = parts[0];
-      if (parts.length > 1) initialUnit = parts.sublist(1).join(' ');
-    }
-
-    final amountController = TextEditingController(text: initialAmount);
-
-    final List<String> dayNames = [
-      'Pazartesi',
-      'Salı',
-      'Çarşamba',
-      'Perşembe',
-      'Cuma',
-      'Cumartesi',
-      'Pazar',
-    ];
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        List<ReminderTime> reminders = List.from(initialReminders);
-        List<int> selectedWeekdays = List.from(initialWeekdays);
-        String selectedUnit = initialUnit;
-        final List<String> units = [
-          'Tablet',
-          'mg',
-          'ml',
-          'Ölçek',
-          'Damla',
-          'Kapsül',
-          'Poşet',
-        ];
-
-        if (!units.contains(selectedUnit)) {
-          selectedUnit = 'Tablet';
-        }
-
-        return StatefulBuilder(
-          builder: (context, setStateModal) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-              ),
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20.h,
-                left: 24.w,
-                right: 24.w,
-                top: 16.h,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40.w,
-                      height: 4.h,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2.r),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-                  Text(
-                    isEditing ? "İlacı Düzenle" : "Yeni İlaç Ekle",
-                    style: TextStyle(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2196F3),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 32.h),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: "İlaç Adı",
-                      hintText: "Örn: Aspirin",
-                      prefixIcon: Icon(
-                        Icons.medication,
-                        color: Colors.blue[400],
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.blue[50],
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 16.h,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: TextFormField(
-                          controller: amountController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "Miktar",
-                            hintText: "1",
-                            prefixIcon: Icon(
-                              Icons.onetwothree,
-                              color: Colors.blue[400],
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16.r),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: Colors.blue[50],
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 16.h,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        flex: 2,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12.w),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: selectedUnit,
-                              isExpanded: true,
-                              icon: Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                color: Colors.blue[400],
-                              ),
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              items: units
-                                  .map(
-                                    (unit) => DropdownMenuItem(
-                                      value: unit,
-                                      child: Text(unit),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value != null)
-                                  setStateModal(() => selectedUnit = value);
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16.h),
-                  SizedBox(height: 24.h),
-                  Text(
-                    "Hatırlatma Günleri",
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey[700],
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Column(
-                    children: [
-                      Wrap(
-                        spacing: 8.w,
-                        runSpacing: 8.h,
-                        children: List.generate(7, (index) {
-                          final day = index + 1;
-                          final isSelected = selectedWeekdays.contains(day);
-                          return FilterChip(
-                            label: Text(dayNames[index]),
-                            selected: isSelected,
-                            onSelected: (val) {
-                              setStateModal(() {
-                                if (selectedWeekdays.contains(day)) {
-                                  selectedWeekdays.remove(day);
-                                } else {
-                                  selectedWeekdays.add(day);
-                                }
-                              });
-                            },
-                            selectedColor: Colors.blue[100],
-                            checkmarkColor: Colors.blue,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? Colors.blue[700]
-                                  : Colors.black87,
-                              fontSize: 12.sp,
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Hatırlatma Saatleri",
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey[700],
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: () {
-                          setStateModal(() {
-                            reminders.add(ReminderTime(hour: 9, minute: 0));
-                          });
-                        },
-                        icon: const Icon(Icons.add, size: 20),
-                        label: const Text("Ekle"),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  ...reminders.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final time = entry.value;
-                    final timeOfDay = TimeOfDay(
-                      hour: time.hour,
-                      minute: time.minute,
-                    );
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: 8.h),
-                      child: InkWell(
-                        onTap: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: timeOfDay,
-                          );
-                          if (picked != null) {
-                            setStateModal(() {
-                              reminders[index] = ReminderTime(
-                                hour: picked.hour,
-                                minute: picked.minute,
-                              );
-                            });
-                          }
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 12.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.access_time_filled,
-                                color: Colors.blue[400],
-                              ),
-                              SizedBox(width: 12.w),
-                              Text(
-                                "${index + 1}. Hatırlatma",
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                              const Spacer(),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 6.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: Text(
-                                  timeOfDay.format(context),
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF2196F3),
-                                  ),
-                                ),
-                              ),
-                              if (reminders.length > 1)
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.remove_circle_outline,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () {
-                                    setStateModal(() {
-                                      reminders.removeAt(index);
-                                    });
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                  SizedBox(height: 32.h),
-                  SizedBox(
-                    height: 56.h,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (nameController.text.isNotEmpty &&
-                            amountController.text.isNotEmpty) {
-                          try {
-                            final amount =
-                                "${amountController.text} $selectedUnit";
-                            if (isEditing) {
-                              // Update existing
-                              medicineToEdit.name = nameController.text;
-                              medicineToEdit.amount = amount;
-                              medicineToEdit.weekdays = selectedWeekdays;
-                              medicineToEdit.reminders = reminders;
-                              await medicineToEdit.save();
-
-                              await NotificationService.cancelAllMedicineReminders(
-                                medicineToEdit.key as int,
-                              );
-                              await NotificationService.scheduleMedicineReminders(
-                                id: medicineToEdit.key as int,
-                                title: 'İlaç Zamanı: ${medicineToEdit.name}',
-                                body:
-                                    '$amount miktarında ilacınızı almayı unutmayın.',
-                                weekdays: medicineToEdit.weekdays,
-                                reminders: medicineToEdit.reminders ?? [],
-                              );
-                            } else {
-                              // Add new
-                              final medicine = Medicine(
-                                name: nameController.text,
-                                amount: amount,
-                                weekdays: selectedWeekdays,
-                                reminders: reminders,
-                              );
-                              await StorageService.addMedicine(medicine);
-                              if (medicine.isInBox) {
-                                await NotificationService.scheduleMedicineReminders(
-                                  id: medicine.key as int,
-                                  title: 'İlaç Zamanı: ${medicine.name}',
-                                  body:
-                                      '$amount miktarında ilacınızı almayı unutmayın.',
-                                  weekdays: medicine.weekdays,
-                                  reminders: medicine.reminders ?? [],
-                                );
-                              }
-                            }
-
-                            if (context.mounted) Navigator.pop(context);
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Hata: $e')),
-                              );
-                            }
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2196F3),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                      ),
-                      child: Text(
-                        isEditing ? "Güncelle" : "Kaydet",
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => MedicineFormSheet(medicineToEdit: medicineToEdit),
     );
   }
 
@@ -644,19 +234,28 @@ class _HomePageState extends State<HomePage> {
         valueListenable: StorageService.getBox().listenable(),
         builder: (context, box, _) {
           final allMedicines = box.values.toList().cast<Medicine>();
+          final now = DateTime.now();
+          final todayWeekday = now.weekday; // 1=Mon, 7=Sun
 
-          if (allMedicines.isEmpty) {
-            return Center(
-              child: Text(
-                'Kayıtlı ilaç yok.',
-                style: TextStyle(fontSize: 18.sp),
-              ),
-            );
+          final List<MedicineReminder> dailyReminders = [];
+          for (final m in allMedicines) {
+            final weekdays = m.weekdays ?? [];
+            if (weekdays.isEmpty || weekdays.contains(todayWeekday)) {
+              final reminders =
+                  m.reminders ?? [ReminderTime(hour: m.hour, minute: m.minute)];
+
+              for (final r in reminders) {
+                dailyReminders.add(MedicineReminder(medicine: m, reminder: r));
+              }
+            }
           }
 
-          final pending = allMedicines.where((m) => !_isTakenToday(m)).toList();
-          final takenToday = allMedicines
-              .where((m) => _isTakenToday(m))
+          final pending = dailyReminders
+              .where((mr) => !_isTakenToday(mr.medicine, mr.reminder))
+              .toList();
+
+          final takenToday = dailyReminders
+              .where((mr) => _isTakenToday(mr.medicine, mr.reminder))
               .toList();
 
           return ListView(
@@ -665,7 +264,7 @@ class _HomePageState extends State<HomePage> {
               if (pending.isNotEmpty) ...[
                 _buildSectionContainer(
                   title: "Bugünkü İlaçlar",
-                  medicines: pending,
+                  reminders: pending,
                   isTaken: false,
                 ),
               ],
@@ -673,7 +272,7 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(height: 24.h),
                 _buildSectionContainer(
                   title: "Tamamlananlar",
-                  medicines: takenToday,
+                  reminders: takenToday,
                   isTaken: true,
                 ),
               ],
@@ -690,7 +289,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildSectionContainer({
     required String title,
-    required List<Medicine> medicines,
+    required List<MedicineReminder> reminders,
     required bool isTaken,
   }) {
     return Container(
@@ -709,7 +308,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader(title),
-          ...medicines.map((m) => _buildMedicineCard(m, isTaken: isTaken)),
+          ...reminders.map((mr) => _buildMedicineCard(mr, isTaken: isTaken)),
         ],
       ),
     );
@@ -729,9 +328,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMedicineCard(Medicine medicine, {bool isTaken = false}) {
+  Widget _buildMedicineCard(MedicineReminder mr, {bool isTaken = false}) {
+    final medicine = mr.medicine;
+    final r = mr.reminder;
+    final timeOfDay = TimeOfDay(hour: r.hour, minute: r.minute);
+
     return Dismissible(
-      key: Key(medicine.key.toString()),
+      key: Key("${medicine.key}_${r.hour}_${r.minute}"),
       background: Container(
         color: Colors.red,
         alignment: Alignment.centerLeft,
@@ -764,18 +367,13 @@ class _HomePageState extends State<HomePage> {
           child: ListTile(
             onLongPress: isTaken
                 ? () {
-                    // Show a quick undo snackbar or dialog
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text("İşaret kaldırıldı."),
                         duration: const Duration(seconds: 2),
-                        action: SnackBarAction(
-                          label: "Tamam",
-                          onPressed: () {},
-                        ),
                       ),
                     );
-                    _toggleTaken(medicine, false);
+                    _toggleTaken(medicine, r, false);
                   }
                 : null,
             leading: Transform.scale(
@@ -784,7 +382,7 @@ class _HomePageState extends State<HomePage> {
                 value: isTaken,
                 onChanged: isTaken
                     ? null
-                    : (val) => _toggleTaken(medicine, val),
+                    : (val) => _toggleTaken(medicine, r, val),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),
                 ),
@@ -804,55 +402,481 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Text(medicine.amount, style: TextStyle(fontSize: 14.sp)),
                 SizedBox(height: 4.h),
-                Wrap(
-                  spacing: 4.w,
+                Row(
                   children: [
-                    ...(medicine.reminders ??
-                            [
-                              ReminderTime(
-                                hour: medicine.hour,
-                                minute: medicine.minute,
-                              ),
-                            ])
-                        .map(
-                          (t) => Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 6.w,
-                              vertical: 2.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(4.r),
-                            ),
-                            child: Text(
-                              "${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}",
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
-                              ),
-                            ),
-                          ),
-                        ),
+                    Icon(
+                      Icons.access_time,
+                      size: 14.sp,
+                      color: Colors.blueGrey,
+                    ),
+                    SizedBox(width: 4.w),
+                    Text(
+                      timeOfDay.format(context),
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () =>
-                      _showMedicineDialog(medicineToEdit: medicine),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MedicineReminder {
+  final Medicine medicine;
+  final ReminderTime reminder;
+  MedicineReminder({required this.medicine, required this.reminder});
+}
+
+class MedicineFormSheet extends StatefulWidget {
+  final Medicine? medicineToEdit;
+  const MedicineFormSheet({super.key, this.medicineToEdit});
+
+  @override
+  State<MedicineFormSheet> createState() => _MedicineFormSheetState();
+}
+
+class _MedicineFormSheetState extends State<MedicineFormSheet> {
+  late TextEditingController nameController;
+  late TextEditingController amountController;
+  late List<ReminderTime> reminders;
+  late List<int> selectedWeekdays;
+  late String selectedUnit;
+  bool _isSaving = false;
+
+  final List<String> units = [
+    'Tablet',
+    'mg',
+    'ml',
+    'Ölçek',
+    'Damla',
+    'Kapsül',
+    'Poşet',
+  ];
+
+  final List<String> dayNames = [
+    'Pazartesi',
+    'Salı',
+    'Çarşamba',
+    'Perşembe',
+    'Cuma',
+    'Cumartesi',
+    'Pazar',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final isEditing = widget.medicineToEdit != null;
+    nameController = TextEditingController(
+      text: isEditing ? widget.medicineToEdit!.name : '',
+    );
+
+    reminders = isEditing
+        ? List.from(
+            widget.medicineToEdit!.reminders ??
+                [
+                  ReminderTime(
+                    hour: widget.medicineToEdit!.hour,
+                    minute: widget.medicineToEdit!.minute,
+                  ),
+                ],
+          )
+        : [ReminderTime(hour: 9, minute: 0)];
+
+    selectedWeekdays = isEditing
+        ? List.from(widget.medicineToEdit!.weekdays ?? [])
+        : [];
+
+    String initialAmount = '';
+    selectedUnit = 'Tablet';
+
+    if (isEditing) {
+      final parts = widget.medicineToEdit!.amount.split(' ');
+      if (parts.isNotEmpty) initialAmount = parts[0];
+      if (parts.length > 1) selectedUnit = parts.sublist(1).join(' ');
+    }
+
+    if (!units.contains(selectedUnit)) {
+      selectedUnit = 'Tablet';
+    }
+
+    amountController = TextEditingController(text: initialAmount);
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    amountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEditing = widget.medicineToEdit != null;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20.h,
+        left: 24.w,
+        right: 24.w,
+        top: 16.h,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2.r),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _deleteMedicine(medicine),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              isEditing ? "İlacı Düzenle" : "Yeni İlaç Ekle",
+              style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF2196F3),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 32.h),
+            TextFormField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: "İlaç Adı",
+                hintText: "Örn: Aspirin",
+                prefixIcon: Icon(Icons.medication, color: Colors.blue[400]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.blue[50],
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16.w,
+                  vertical: 16.h,
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: TextFormField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: "Miktar",
+                      hintText: "1",
+                      prefixIcon: Icon(
+                        Icons.onetwothree,
+                        color: Colors.blue[400],
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16.r),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.blue[50],
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 16.h,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedUnit,
+                        isExpanded: true,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Colors.blue[400],
+                        ),
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        items: units
+                            .map(
+                              (unit) => DropdownMenuItem(
+                                value: unit,
+                                child: Text(unit),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => selectedUnit = value);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
+            SizedBox(height: 24.h),
+            Text(
+              "Hatırlatma Günleri",
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueGrey[700],
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: List.generate(7, (index) {
+                final day = index + 1;
+                final isSelected = selectedWeekdays.contains(day);
+                return FilterChip(
+                  label: Text(dayNames[index]),
+                  selected: isSelected,
+                  onSelected: (val) {
+                    setState(() {
+                      if (selectedWeekdays.contains(day)) {
+                        selectedWeekdays.remove(day);
+                      } else {
+                        selectedWeekdays.add(day);
+                      }
+                    });
+                  },
+                  selectedColor: Colors.blue[100],
+                  checkmarkColor: Colors.blue,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.blue[700] : Colors.black87,
+                    fontSize: 12.sp,
+                  ),
+                );
+              }),
+            ),
+            SizedBox(height: 24.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Hatırlatma Saatleri",
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey[700],
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      reminders.add(ReminderTime(hour: 9, minute: 0));
+                    });
+                  },
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text("Ekle"),
+                  style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                ),
+              ],
+            ),
+            ...reminders.asMap().entries.map((entry) {
+              final index = entry.key;
+              final time = entry.value;
+              final timeOfDay = TimeOfDay(hour: time.hour, minute: time.minute);
+              return Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: InkWell(
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: timeOfDay,
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        reminders[index] = ReminderTime(
+                          hour: picked.hour,
+                          minute: picked.minute,
+                        );
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 12.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.access_time_filled, color: Colors.blue[400]),
+                        SizedBox(width: 12.w),
+                        Text(
+                          "${index + 1}. Hatırlatma",
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 6.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Text(
+                            timeOfDay.format(context),
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2196F3),
+                            ),
+                          ),
+                        ),
+                        if (reminders.length > 1)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              color: Colors.red,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                reminders.removeAt(index);
+                              });
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+            SizedBox(height: 32.h),
+            SizedBox(
+              height: 56.h,
+              child: ElevatedButton(
+                onPressed: _isSaving
+                    ? null
+                    : () async {
+                        if (nameController.text.isNotEmpty &&
+                            amountController.text.isNotEmpty) {
+                          setState(() => _isSaving = true);
+                          try {
+                            final amount =
+                                "${amountController.text} $selectedUnit";
+                            if (isEditing) {
+                              final medicineToEdit = widget.medicineToEdit!;
+                              medicineToEdit.name = nameController.text;
+                              medicineToEdit.amount = amount;
+                              medicineToEdit.weekdays = selectedWeekdays;
+                              medicineToEdit.reminders = reminders;
+                              await medicineToEdit.save();
+
+                              await NotificationService.cancelAllMedicineReminders(
+                                medicineToEdit.key as int,
+                              );
+                              await NotificationService.scheduleMedicineReminders(
+                                id: medicineToEdit.key as int,
+                                title: 'İlaç Zamanı: ${medicineToEdit.name}',
+                                body:
+                                    '$amount miktarında ilacınızı almayı unutmayın.',
+                                weekdays: medicineToEdit.weekdays,
+                                reminders: medicineToEdit.reminders ?? [],
+                              );
+                            } else {
+                              final medicine = Medicine(
+                                name: nameController.text,
+                                amount: amount,
+                                weekdays: selectedWeekdays,
+                                reminders: reminders,
+                              );
+                              await StorageService.addMedicine(medicine);
+                              if (medicine.isInBox) {
+                                await NotificationService.scheduleMedicineReminders(
+                                  id: medicine.key as int,
+                                  title: 'İlaç Zamanı: ${medicine.name}',
+                                  body:
+                                      '$amount miktarında ilacınızı almayı unutmayın.',
+                                  weekdays: medicine.weekdays,
+                                  reminders: medicine.reminders ?? [],
+                                );
+                              }
+                            }
+
+                            if (context.mounted) Navigator.pop(context);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Hata: $e')),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isSaving = false);
+                            }
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2196F3),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                ),
+                child: _isSaving
+                    ? SizedBox(
+                        height: 24.h,
+                        width: 24.w,
+                        child: const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        isEditing ? "Güncelle" : "Kaydet",
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
     );
