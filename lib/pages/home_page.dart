@@ -81,7 +81,10 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Özellikle Xiaomi, Huawei gibi cihazlarda "Pil Tasarrufu" veya "Otomatik Başlatma" ayarları bildirimlerin gelmesini engelleyebilir.\n\nLütfen uygulamanın ayarlarından pil kısıtlamalarını kaldırın ve otomatik başlatmaya izin verin.',
+                    'Telefonunuzu yeniden başlattığınızda bildirimleri almaya devam etmek için şu iki ayar çok önemlidir:\n\n'
+                    '1. **Otomatik Başlatma (Auto-start):** Uygulama bilgilerinden bu izni açın.\n'
+                    '2. **Pil Kısıtlaması Yok (No restrictions):** Pil tasarrufu ayarlarından "Kısıtlama Yok" seçeneğini seçin.\n\n'
+                    'Aksi takdirde telefonunuz kapandığında veya pil tasarrufu modunda bildirimler gelmeyebilir.',
                   ),
                   SizedBox(height: 16.h),
                   Row(
@@ -114,12 +117,21 @@ class _HomePageState extends State<HomePage> {
                     if (dontShowAgain) {
                       await StorageService.setBatteryWarningShown(true);
                     }
+                    // Don't pop yet, let them go to settings
+                    await NotificationService.openAutoStartSettings();
+                  },
+                  child: const Text('Otomatik Başlatmaya Git'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (dontShowAgain) {
+                      await StorageService.setBatteryWarningShown(true);
+                    }
                     if (context.mounted) Navigator.pop(context);
                     // Open settings (best effort)
-                    // AwesomeNotifications().showNotificationConfigPage(); // or similar
                     openAppSettings();
                   },
-                  child: const Text('Ayarlara Git'),
+                  child: const Text('Pil Ayarlarına Git'),
                 ),
               ],
             );
@@ -187,7 +199,7 @@ class _HomePageState extends State<HomePage> {
 
     if (confirm == true) {
       if (medicine.key != null) {
-        await NotificationService.cancelNotification(medicine.key as int);
+        await NotificationService.cancelAllNotifications(medicine.key as int);
       }
       await StorageService.deleteMedicine(medicine);
     }
@@ -446,7 +458,7 @@ class _HomePageState extends State<HomePage> {
                               medicineToEdit.minute = selectedTime.minute;
                               await medicineToEdit.save();
 
-                              await NotificationService.cancelNotification(
+                              await NotificationService.cancelAllNotifications(
                                 medicineToEdit.key as int,
                               );
                               await NotificationService.scheduleDailyNotification(
@@ -539,13 +551,19 @@ class _HomePageState extends State<HomePage> {
             padding: EdgeInsets.all(16.w),
             children: [
               if (pending.isNotEmpty) ...[
-                _buildSectionHeader("Bugünkü İlaçlar"),
-                ...pending.map((m) => _buildMedicineCard(m)),
+                _buildSectionContainer(
+                  title: "Bugünkü İlaçlar",
+                  medicines: pending,
+                  isTaken: false,
+                ),
               ],
               if (takenToday.isNotEmpty) ...[
                 SizedBox(height: 24.h),
-                _buildSectionHeader("Tamamlananlar"),
-                ...takenToday.map((m) => _buildMedicineCard(m, isTaken: true)),
+                _buildSectionContainer(
+                  title: "Tamamlananlar",
+                  medicines: takenToday,
+                  isTaken: true,
+                ),
               ],
             ],
           );
@@ -554,6 +572,31 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showMedicineDialog(),
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildSectionContainer({
+    required String title,
+    required List<Medicine> medicines,
+    required bool isTaken,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: isTaken ? Colors.grey[50] : Colors.blue[50]?.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(
+          color: isTaken ? Colors.grey[300]! : Colors.blue[200]!,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(title),
+          ...medicines.map((m) => _buildMedicineCard(m, isTaken: isTaken)),
+        ],
       ),
     );
   }
@@ -602,7 +645,7 @@ class _HomePageState extends State<HomePage> {
       child: Opacity(
         opacity: isTaken ? 0.7 : 1.0,
         child: Card(
-          margin: EdgeInsets.symmetric(vertical: 8.h),
+          margin: EdgeInsets.symmetric(vertical: 6.h),
           elevation: isTaken ? 1 : 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),

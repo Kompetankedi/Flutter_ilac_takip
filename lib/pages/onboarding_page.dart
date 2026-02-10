@@ -91,109 +91,195 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: 40.h),
+                SizedBox(height: 48.h),
                 Text(
                   'Hoşgeldiniz',
                   style: TextStyle(
                     fontSize: 32.sp,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
+                    color: const Color(0xFF2196F3),
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 12.h),
                 Text(
                   'Lütfen takip edilecek ilk ilacınızı girin.',
-                  style: TextStyle(fontSize: 16.sp, color: Colors.grey[700]),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: Colors.blueGrey[600],
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 40.h),
+                SizedBox(height: 48.h),
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'İlaç Adı',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.medication),
+                  decoration: InputDecoration(
+                    labelText: "İlaç Adı",
+                    hintText: "Örn: Aspirin",
+                    prefixIcon: Icon(Icons.medication, color: Colors.blue[400]),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.blue[50],
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 16.h,
+                    ),
                   ),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Lütfen ilaç adı girin'
                       : null,
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: 16.h),
                 Row(
                   children: [
                     Expanded(
-                      flex: 2,
+                      flex: 3,
                       child: TextFormField(
                         controller: _amountController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Miktar',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.numbers),
+                        decoration: InputDecoration(
+                          labelText: "Miktar",
+                          hintText: "1",
+                          prefixIcon: Icon(
+                            Icons.onetwothree,
+                            color: Colors.blue[400],
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Colors.blue[50],
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 16.h,
+                          ),
                         ),
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Gerekli' : null,
                       ),
                     ),
-                    SizedBox(width: 10.w),
+                    SizedBox(width: 12.w),
                     Expanded(
-                      flex: 3,
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedUnit,
-                        decoration: const InputDecoration(
-                          labelText: 'Birim',
-                          border: OutlineInputBorder(),
+                      flex: 2,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(16.r),
                         ),
-                        items: _units.map((unit) {
-                          return DropdownMenuItem(
-                            value: unit,
-                            child: Text(unit),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _selectedUnit = value;
-                            });
-                          }
-                        },
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedUnit,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            ),
+                            icon: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Colors.blue[400],
+                            ),
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            items: _units.map((unit) {
+                              return DropdownMenuItem(
+                                value: unit,
+                                child: Text(unit),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedUnit = value;
+                                });
+                              }
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: 16.h),
                 InkWell(
                   onTap: _pickTime,
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Hatırlatma Saati',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.alarm),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 16.h,
                     ),
-                    child: Text(
-                      _selectedTime.format(context),
-                      style: TextStyle(fontSize: 16.sp),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.access_time_filled, color: Colors.blue[400]),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Text(
+                            "Hatırlatma Saati",
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 6.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            _selectedTime.format(context),
+                            style: TextStyle(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2196F3),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                SizedBox(height: 60.h),
+                SizedBox(height: 48.h),
                 SizedBox(
-                  width: double.infinity,
-                  height: 50.h,
+                  height: 56.h,
                   child: ElevatedButton(
                     onPressed: _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
+                      backgroundColor: const Color(0xFF2196F3),
                       foregroundColor: Colors.white,
+                      elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(16.r),
                       ),
                     ),
                     child: Text(

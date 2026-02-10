@@ -1,6 +1,9 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
-import '../models/medicine.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
 import 'storage_service.dart';
 
 class NotificationService {
@@ -53,6 +56,51 @@ class NotificationService {
     if (!isAllowed) {
       await AwesomeNotifications().requestPermissionToSendNotifications();
     }
+
+    // Precise Alarms (Exact Alarms) - Android 12+
+    // Check if it's already allowed to avoid the settings loop
+    List<NotificationPermission> allowed = await AwesomeNotifications()
+        .checkPermissionList(
+          permissions: [NotificationPermission.PreciseAlarms],
+        );
+
+    if (!allowed.contains(NotificationPermission.PreciseAlarms)) {
+      // Only show if not already granted.
+      await AwesomeNotifications().showAlarmPage();
+    }
+
+    // 3. Battery Optimizations
+    // Check if we are already ignoring battery optimizations
+    bool isIgnoring = await Permission.ignoreBatteryOptimizations.isGranted;
+    if (!isIgnoring) {
+      // We don't want to redirect unconditionally here because it's invasive.
+    }
+  }
+
+  static Future<void> openAutoStartSettings() async {
+    if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      final manufacturer = androidInfo.manufacturer.toLowerCase();
+
+      if (manufacturer.contains('xiaomi')) {
+        const intent = AndroidIntent(
+          action: 'action_main',
+          package: 'com.miui.securitycenter',
+          componentName:
+              'com.miui.permcenter.autostart.AutoStartManagementActivity',
+        );
+        try {
+          await intent.launch();
+          return;
+        } catch (e) {
+          debugPrint('Could not launch Xiaomi auto-start settings: $e');
+        }
+      }
+
+      // Fallback for other manufacturers or if specific intent fails
+      await openAppSettings();
+    }
   }
 
   static Future<void> scheduleDailyNotification({
@@ -77,7 +125,7 @@ class NotificationService {
         title: title,
         body: body,
         notificationLayout: NotificationLayout.Default,
-        category: NotificationCategory.Reminder,
+        category: NotificationCategory.Alarm,
         wakeUpScreen: true,
         fullScreenIntent: true,
         autoDismissible: false,
@@ -124,7 +172,7 @@ class NotificationService {
           title: '$title (Hatırlatma $i)',
           body: body,
           notificationLayout: NotificationLayout.Default,
-          category: NotificationCategory.Reminder,
+          category: NotificationCategory.Alarm,
           wakeUpScreen: true,
           fullScreenIntent: true,
           autoDismissible: false,
@@ -149,6 +197,11 @@ class NotificationService {
     }
   }
 
+  static Future<void> cancelAllNotifications(int medicineId) async {
+    await cancelNotification(medicineId);
+    await cancelNaggingNotifications(medicineId);
+  }
+
   /// Use this method to detect when a new notification or a schedule is created
   @pragma("vm:entry-point")
   static Future<void> onNotificationDisplayedMethod(
@@ -169,6 +222,18 @@ class NotificationService {
 
       // It is a main notification. Schedule nagging.
       int id = receivedNotification.id!;
+
+      // ENSURE BACKGROUND INITIALIZATION
+      // The background isolate starts fresh and might not have initialized Hive.
+      try {
+        if (!StorageService.getBox().isOpen) {
+          await StorageService.init();
+        }
+      } catch (e) {
+        try {
+          await StorageService.init();
+        } catch (_) {}
+      }
 
       // Check if medicine was already taken today
       try {
