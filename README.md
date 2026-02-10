@@ -1,66 +1,50 @@
 # İlaç Takip Uygulaması (Medication Tracker)
 
-A fully local, privacy-focused medication tracking application built with Flutter. This app helps users manage their medication schedule with custom audible reminders and a responsive design that works on any device.
+Modern, kullanıcı dostu ve akıllı bildirim sistemine sahip bir ilaç takip uygulaması.
 
-## 🌟 Features
+## 🚀 Özellikler
 
-- **🔒 Fully Local**: No servers, no sign-ups. All data is stored securely on your device using **Hive**.
-- **🔔 Custom Notifications**: Triggers a unique alarm sound (`medication_alarm.mp3`) for reminders, ensuring you differentiate it from standard system notifications.
-- **📱 Responsive Design**: UI adapts perfectly to different screen sizes using `flutter_screenutil`.
-- **🚀 Onboarding**: Quick and easy setup for your first medication.
-- **⚡ Background Support**: Notifications work even when the app is completely closed.
+- **Akıllı Hatırlatıcılar**: İlaç saatiniz geldiğinde bildirim alırsınız.
+- **Dürtme (Nagging) Bildirimi**: İlacı içtiğinizi işaretlemediğiniz sürece, 15 dakika boyunca her dakika başı tekrar hatırlatma yapılır.
+- **Günlük Takip**: Ana ekranda "Bugünkü İlaçlar" ve "Tamamlananlar" olarak gruplandırılmış liste.
+- **Kolay İşaretleme**: İlacı içtiğinizde tek tıkla işaretleyin. Yanlışlıkla işaretlediyseniz, üzerine basılı tutarak (Long Press) geri alabilirsiniz.
+- **İstatistikler ve Seri**: İlaç içme alışkanlığınızı takip edin. Haftalık uyum grafiği ve üst üste kaç gün içtiğinizi gösteren "Seri" (Streak) özelliği.
+- **Modern Arayüz**: Responsive tasarım, mavi/beyaz ferah tema ve akıcı animasyonlar.
+- **Pil Tasarrufu Uyarıları**: Xiaomi, Huawei gibi cihazlarda bildirimlerin kesilmemesi için gerekli yönlendirmeler.
 
-## 🛠️ Technologies
+## 🛠️ Teknik Detaylar
 
-- **[Flutter](https://flutter.dev/)**: Cross-platform UI toolkit.
-- **[Hive](https://docs.hivedb.dev/)**: Lightweight and fast key-value database.
-- **[Flutter Local Notifications](https://pub.dev/packages/flutter_local_notifications)**: Advanced notification scheduling.
-- **[ScreenUtil](https://pub.dev/packages/flutter_screenutil)**: Screen adaptation for responsive layouts.
+- **Framework**: Flutter
+- **Yerel Depolama**: [Hive](https://pub.dev/packages/hive) (Hızlı ve güvenli yerel veritabanı)
+- **Bildirimler**: [Awesome Notifications](https://pub.dev/packages/awesome_notifications)
+- **Grafikler**: [fl_chart](https://pub.dev/packages/fl_chart)
+- **Responsive UI**: [flutter_screenutil](https://pub.dev/packages/flutter_screenutil)
 
-## 📦 Installation & Setup
+## 📦 Kurulum
 
-1.  **Clone the project**
-    ```bash
-    git clone https://github.com/yourusername/ilac_takip.git
-    cd ilac_takip
-    ```
+1. Depoyu klonlayın:
+   ```bash
+   git clone [repo-url]
+   ```
+2. Bağımlılıkları yükleyin:
+   ```bash
+   flutter pub get
+   ```
+3. Hive adaptörlerini oluşturun (Gerekliyse):
+   ```bash
+   dart run build_runner build --delete-conflicting-outputs
+   ```
+4. Uygulamayı çalıştırın:
+   ```bash
+   flutter run
+   ```
 
-2.  **Install Dependencies**
-    ```bash
-    flutter pub get
-    ```
+## 🔔 Bildirim Notları (Android)
 
-3.  **Generate Hive Adapters** (if you modify models)
-    ```bash
-    dart run build_runner build --delete-conflicting-outputs
-    ```
+Özellikle Android 12+ ve kısıtlı pil yönetimi olan cihazlarda bildirimlerin çalışması için:
+1. Uygulama ayarlarından **"Tam Ekran Niyeti"** ve **"Kilit Ekranında Göster"** izinlerini kontrol edin.
+2. Pil tasarrufu modundan **"Kısıtlama Yok"** seçeneğini seçin.
 
-4.  **Run the App**
-    ```bash
-    flutter run
-    ```
+## 📄 Lisans
 
-## ⚙️ Configuration
-
-### Custom Notification Sound
-
-The app uses a custom sound file named `medication_alarm.mp3`.
-
--   **Android**: The file is located at `android/app/src/main/res/raw/medication_alarm.mp3`.
--   **iOS**: The file should be added to the root of the Xcode project and included in the app bundle.
-
-*Note: If you want to change the sound, simply replace this file with your own audio file (keep the same name).*
-
-## 📂 Project Structure
-
-```
-lib/
-├── models/         # Data models (Medicine)
-├── pages/          # UI Screens (Onboarding, HomePage)
-├── services/       # Core Logic (Storage, Notifications)
-└── main.dart       # App Entry & Initialization
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+Bu proje MIT lisansı ile korunmaktadır.
