@@ -24,7 +24,7 @@ Modern, kullanıcı dostu ve akıllı bildirim sistemine sahip bir ilaç takip u
 
 1. Depoyu klonlayın:
    ```bash
-   git clone [repo-url]
+   git clone https://github.com/Kompetankedi/Flutter_ilac_takip.git
    ```
 2. Bağımlılıkları yükleyin:
    ```bash
