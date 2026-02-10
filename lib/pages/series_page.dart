@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/medicine.dart';
 import '../services/storage_service.dart';
+import '../services/l10n_service.dart';
 
 class SeriesPage extends StatelessWidget {
   const SeriesPage({super.key});
@@ -74,7 +75,7 @@ class SeriesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('İstatistiklerim'), centerTitle: true),
+      appBar: AppBar(title: Text(S.text('stats_title')), centerTitle: true),
       body: ValueListenableBuilder<Box<Medicine>>(
         valueListenable: StorageService.getBox().listenable(),
         builder: (context, box, _) {
@@ -82,7 +83,7 @@ class SeriesPage extends StatelessWidget {
           if (medicines.isEmpty) {
             return Center(
               child: Text(
-                'Henüz veri bulunmuyor.',
+                S.text('no_data_yet'),
                 style: TextStyle(fontSize: 16.sp, color: Colors.grey),
               ),
             );
@@ -99,7 +100,7 @@ class SeriesPage extends StatelessWidget {
                 _buildStreakCard(streak),
                 SizedBox(height: 32.h),
                 Text(
-                  'Haftalık Uyum (%)',
+                  S.text('weekly_compliance'),
                   style: TextStyle(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
@@ -142,7 +143,7 @@ class SeriesPage extends StatelessWidget {
           Icon(Icons.local_fire_department, color: Colors.orange, size: 64.sp),
           SizedBox(height: 8.h),
           Text(
-            '$streak Gün',
+            '$streak ${S.text('days')}',
             style: TextStyle(
               fontSize: 32.sp,
               fontWeight: FontWeight.bold,
@@ -150,7 +151,7 @@ class SeriesPage extends StatelessWidget {
             ),
           ),
           Text(
-            'Kesintisiz Seri',
+            S.text('streak'),
             style: TextStyle(
               fontSize: 16.sp,
               color: Colors.white.withOpacity(0.9),
@@ -176,15 +177,7 @@ class SeriesPage extends StatelessWidget {
               sideTitles: SideTitles(
                 showTitles: true,
                 getTitlesWidget: (value, meta) {
-                  const days = [
-                    'Pzt',
-                    'Sal',
-                    'Çar',
-                    'Per',
-                    'Cum',
-                    'Cmt',
-                    'Paz',
-                  ];
+                  final days = S.shortDayNames;
                   // Simple logic to show day labels correctly relative to today
                   DateTime now = DateTime.now();
                   DateTime date = now.subtract(
@@ -269,7 +262,10 @@ class SeriesPage extends StatelessWidget {
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              'Şu anda $activeCount aktif ilacınız bulunuyor. Serinizi korumak için her gün tüm ilaçlarınızı içmeyi unutmayın!',
+              S.text(
+                'active_medicines_summary',
+                params: {'count': activeCount.toString()},
+              ),
               style: TextStyle(fontSize: 14.sp, color: Colors.black87),
             ),
           ),

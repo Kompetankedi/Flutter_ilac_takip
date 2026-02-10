@@ -4,6 +4,7 @@ import '../models/medicine.dart';
 import '../models/reminder_time.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
+import '../services/l10n_service.dart';
 import 'main_page.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -21,26 +22,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
   final List<ReminderTime> _reminders = [ReminderTime(hour: 9, minute: 0)];
   List<int> _selectedWeekdays = []; // Empty means all days
 
-  final List<String> _dayNames = [
-    'Pazartesi',
-    'Salı',
-    'Çarşamba',
-    'Perşembe',
-    'Cuma',
-    'Cumartesi',
-    'Pazar',
-  ];
+  final List<String> _dayNames = S.dayNames;
 
-  String _selectedUnit = 'Tablet';
-  final List<String> _units = [
-    'Tablet',
-    'mg',
-    'ml',
-    'Ölçek',
-    'Damla',
-    'Kapsül',
-    'Poşet',
-  ];
+  String _selectedUnit = S.units.first;
+  final List<String> _units = S.units;
 
   @override
   void dispose() {
@@ -65,8 +50,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
         if (medicine.isInBox) {
           await NotificationService.scheduleMedicineReminders(
             id: medicine.key as int,
-            title: 'İlaç Zamanı: ${medicine.name}',
-            body: '$amount miktarında ilacınızı almayı unutmayın.',
+            title: '${S.text('medicine_time_notif')}: ${medicine.name}',
+            body: '$amount ${S.text('notif_body')}',
             weekdays: medicine.weekdays,
             reminders: medicine.reminders ?? [],
           );
@@ -83,7 +68,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Bir hata oluştu: $e')));
+          ).showSnackBar(SnackBar(content: Text('${S.text('error')}: $e')));
         }
       }
     }
@@ -165,7 +150,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Hoşgeldiniz',
+                  S.text('welcome'),
                   style: TextStyle(
                     fontSize: 32.sp,
                     fontWeight: FontWeight.bold,
@@ -175,7 +160,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 SizedBox(height: 12.h),
                 Text(
-                  'Lütfen takip edilecek ilk ilacınızı girin.',
+                  S.text('welcome_subtitle'),
                   style: TextStyle(
                     fontSize: 16.sp,
                     color: Colors.blueGrey[600],
@@ -186,8 +171,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: "İlaç Adı",
-                    hintText: "Örn: Aspirin",
+                    labelText: S.text('medicine_name'),
+                    hintText: S.text('medicine_name_hint'),
                     prefixIcon: Icon(Icons.medication, color: Colors.blue[400]),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16.r),
@@ -201,7 +186,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ),
                   ),
                   validator: (value) => value == null || value.isEmpty
-                      ? 'Lütfen ilaç adı girin'
+                      ? S.text('enter_medicine_name')
                       : null,
                 ),
                 SizedBox(height: 16.h),
@@ -213,7 +198,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         controller: _amountController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
-                          labelText: "Miktar",
+                          labelText: S.text('amount'),
                           hintText: "1",
                           prefixIcon: Icon(
                             Icons.onetwothree,
@@ -230,8 +215,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             vertical: 16.h,
                           ),
                         ),
-                        validator: (value) =>
-                            value == null || value.isEmpty ? 'Gerekli' : null,
+                        validator: (value) => value == null || value.isEmpty
+                            ? S.text('required_field')
+                            : null,
                       ),
                     ),
                     SizedBox(width: 12.w),
@@ -280,7 +266,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
                 SizedBox(height: 24.h),
                 Text(
-                  "Hatırlatma Günleri",
+                  S.text('reminder_days'),
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -294,7 +280,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Hatırlatma Saatleri",
+                      S.text('reminder_times'),
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
@@ -304,7 +290,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     TextButton.icon(
                       onPressed: _addReminder,
                       icon: const Icon(Icons.add, size: 20),
-                      label: const Text("Ekle"),
+                      label: Text(S.text('add')),
                       style: TextButton.styleFrom(foregroundColor: Colors.blue),
                     ),
                   ],
@@ -326,7 +312,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       ),
                     ),
                     child: Text(
-                      'Kaydet ve Başla',
+                      S.text('save_and_start'),
                       style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
@@ -338,7 +324,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 TextButton(
                   onPressed: _skip,
                   child: Text(
-                    'İlaç eklemeden başla',
+                    S.text('skip_onboarding'),
                     style: TextStyle(
                       fontSize: 16.sp,
                       color: Colors.blueGrey[600],
@@ -397,7 +383,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               Icon(Icons.access_time_filled, color: Colors.blue[400]),
               SizedBox(width: 12.w),
               Text(
-                "${index + 1}. Hatırlatma",
+                "${index + 1}${S.text('reminder_count')}",
                 style: TextStyle(fontSize: 16.sp, color: Colors.black54),
               ),
               const Spacer(),

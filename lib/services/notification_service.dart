@@ -5,6 +5,7 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'storage_service.dart';
+import 'l10n_service.dart';
 import '../models/reminder_time.dart';
 
 class NotificationService {
@@ -246,7 +247,7 @@ class NotificationService {
         content: NotificationContent(
           id: (medicineId * 100) + i, // Derived ID
           channelKey: 'medication_channel',
-          title: '$title (Hatırlatma $i)',
+          title: '$title ${S.text('reminder_n')} $i)',
           body: body,
           notificationLayout: NotificationLayout.Default,
           category: NotificationCategory.Alarm,
@@ -355,8 +356,8 @@ class NotificationService {
         debugPrint('Error checking taken status: $e');
       }
 
-      String title = receivedNotification.title ?? 'İlaç Vakti';
-      String body = receivedNotification.body ?? 'İlacınızı almayı unutmayın!';
+      String title = receivedNotification.title ?? S.text('medicine_time');
+      String body = receivedNotification.body ?? S.text('dont_forget_medicine');
 
       await scheduleNaggingNotifications(
         medicineId: medicineId,

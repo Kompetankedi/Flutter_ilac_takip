@@ -5,6 +5,7 @@ import 'services/storage_service.dart';
 import 'services/notification_service.dart';
 import 'pages/onboarding_page.dart';
 import 'pages/main_page.dart';
+import 'pages/language_selection_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,11 +41,19 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFFF5F5F5),
           ),
-          home: StorageService.isFirstRun()
-              ? const OnboardingPage()
-              : const MainPage(),
+          home: _getHomeScreen(),
         );
       },
     );
+  }
+
+  Widget _getHomeScreen() {
+    if (StorageService.getLanguageCode() == null) {
+      return const LanguageSelectionPage();
+    }
+    if (StorageService.isFirstRun()) {
+      return const OnboardingPage();
+    }
+    return const MainPage();
   }
 }

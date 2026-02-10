@@ -56,4 +56,14 @@ class StorageService {
     final box = Hive.box(settingsBoxName);
     await box.put('battery_warning_shown', value);
   }
+
+  static String? getLanguageCode() {
+    final box = Hive.box(settingsBoxName);
+    return box.get('language_code');
+  }
+
+  static Future<void> setLanguageCode(String code) async {
+    final box = Hive.box(settingsBoxName);
+    await box.put('language_code', code);
+  }
 }

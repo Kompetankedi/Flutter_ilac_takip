@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ilac_takip/pages/home_page.dart';
 import 'package:ilac_takip/pages/series_page.dart';
+import '../services/l10n_service.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -25,14 +26,14 @@ class _MainPageState extends State<MainPage> {
             _currentIndex = index;
           });
         },
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.medication),
-            label: 'İlaçlar',
+            icon: const Icon(Icons.medication),
+            label: S.text('medicines'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Seri/Grafik',
+            icon: const Icon(Icons.bar_chart),
+            label: S.text('stats'),
           ),
         ],
         selectedItemColor: Theme.of(context).primaryColor,

@@ -7,6 +7,7 @@ import '../models/medicine.dart';
 import '../models/reminder_time.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
+import '../services/l10n_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,21 +47,19 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Bildirim İzni Gerekli'),
-        content: const Text(
-          'İlaçlarınızı zamanında hatırlatabilmemiz için bildirim izni vermeniz gerekmektedir.',
-        ),
+        title: Text(S.text('notification_permission_title')),
+        content: Text(S.text('notification_permission_body')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('İptal'),
+            child: Text(S.text('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               openAppSettings();
             },
-            child: const Text('Ayarları Aç'),
+            child: Text(S.text('open_settings')),
           ),
         ],
       ),
@@ -76,17 +75,12 @@ class _HomePageState extends State<HomePage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Pil Tasarrufu Uyarısı'),
+              title: Text(S.text('battery_warning_title')),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Telefonunuzu yeniden başlattığınızda bildirimleri almaya devam etmek için şu iki ayar çok önemlidir:\n\n'
-                    '1. **Otomatik Başlatma (Auto-start):** Uygulama bilgilerinden bu izni açın.\n'
-                    '2. **Pil Kısıtlaması Yok (No restrictions):** Pil tasarrufu ayarlarından "Kısıtlama Yok" seçeneğini seçin.\n\n'
-                    'Aksi takdirde telefonunuz kapandığında veya pil tasarrufu modunda bildirimler gelmeyebilir.',
-                  ),
+                  Text(S.text('battery_warning_body')),
                   SizedBox(height: 16.h),
                   Row(
                     children: [
@@ -98,7 +92,7 @@ class _HomePageState extends State<HomePage> {
                           });
                         },
                       ),
-                      const Expanded(child: Text("Bir daha gösterme")),
+                      Expanded(child: Text(S.text('dont_show_again'))),
                     ],
                   ),
                 ],
@@ -111,7 +105,7 @@ class _HomePageState extends State<HomePage> {
                     }
                     if (context.mounted) Navigator.pop(context);
                   },
-                  child: const Text('Tamam'),
+                  child: Text(S.text('ok')),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -121,7 +115,7 @@ class _HomePageState extends State<HomePage> {
                     // Don't pop yet, let them go to settings
                     await NotificationService.openAutoStartSettings();
                   },
-                  child: const Text('Otomatik Başlatmaya Git'),
+                  child: Text(S.text('go_to_autostart')),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -132,7 +126,7 @@ class _HomePageState extends State<HomePage> {
                     // Open settings (best effort)
                     openAppSettings();
                   },
-                  child: const Text('Pil Ayarlarına Git'),
+                  child: Text(S.text('go_to_battery_settings')),
                 ),
               ],
             );
@@ -190,19 +184,17 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Silme Onayı'),
-          content: Text(
-            '${medicine.name} isimli ilacı silmek istediğinize emin misiniz?',
-          ),
+          title: Text(S.text('delete_confirm_title')),
+          content: Text('${medicine.name} ${S.text('delete_confirm_body')}'),
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('İptal'),
+              child: Text(S.text('cancel')),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Sil'),
+              child: Text(S.text('delete')),
             ),
           ],
         );
@@ -229,7 +221,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('İlaç Takip'), centerTitle: true),
+      appBar: AppBar(title: Text(S.text('app_title')), centerTitle: true),
       body: ValueListenableBuilder<Box<Medicine>>(
         valueListenable: StorageService.getBox().listenable(),
         builder: (context, box, _) {
@@ -263,7 +255,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               if (pending.isNotEmpty) ...[
                 _buildSectionContainer(
-                  title: "Bugünkü İlaçlar",
+                  title: S.text('remaining_medicines'),
                   reminders: pending,
                   isTaken: false,
                 ),
@@ -271,7 +263,7 @@ class _HomePageState extends State<HomePage> {
               if (takenToday.isNotEmpty) ...[
                 SizedBox(height: 24.h),
                 _buildSectionContainer(
-                  title: "Tamamlananlar",
+                  title: S.text('completed_medicines'),
                   reminders: takenToday,
                   isTaken: true,
                 ),
@@ -369,7 +361,7 @@ class _HomePageState extends State<HomePage> {
                 ? () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text("İşaret kaldırıldı."),
+                        content: Text(S.text('undo_mark')),
                         duration: const Duration(seconds: 2),
                       ),
                     );
@@ -451,25 +443,9 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
   late String selectedUnit;
   bool _isSaving = false;
 
-  final List<String> units = [
-    'Tablet',
-    'mg',
-    'ml',
-    'Ölçek',
-    'Damla',
-    'Kapsül',
-    'Poşet',
-  ];
+  final List<String> units = S.units;
 
-  final List<String> dayNames = [
-    'Pazartesi',
-    'Salı',
-    'Çarşamba',
-    'Perşembe',
-    'Cuma',
-    'Cumartesi',
-    'Pazar',
-  ];
+  final List<String> dayNames = S.dayNames;
 
   @override
   void initState() {
@@ -496,7 +472,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
         : [];
 
     String initialAmount = '';
-    selectedUnit = 'Tablet';
+    selectedUnit = S.units.first;
 
     if (isEditing) {
       final parts = widget.medicineToEdit!.amount.split(' ');
@@ -505,7 +481,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
     }
 
     if (!units.contains(selectedUnit)) {
-      selectedUnit = 'Tablet';
+      selectedUnit = S.units.first;
     }
 
     amountController = TextEditingController(text: initialAmount);
@@ -549,7 +525,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
             ),
             SizedBox(height: 24.h),
             Text(
-              isEditing ? "İlacı Düzenle" : "Yeni İlaç Ekle",
+              isEditing ? S.text('edit_medicine') : S.text('add_new_medicine'),
               style: TextStyle(
                 fontSize: 22.sp,
                 fontWeight: FontWeight.bold,
@@ -561,8 +537,8 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
             TextFormField(
               controller: nameController,
               decoration: InputDecoration(
-                labelText: "İlaç Adı",
-                hintText: "Örn: Aspirin",
+                labelText: S.text('medicine_name'),
+                hintText: S.text('medicine_name_hint'),
                 prefixIcon: Icon(Icons.medication, color: Colors.blue[400]),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16.r),
@@ -585,7 +561,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
                     controller: amountController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: "Miktar",
+                      labelText: S.text('amount'),
                       hintText: "1",
                       prefixIcon: Icon(
                         Icons.onetwothree,
@@ -647,7 +623,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
             ),
             SizedBox(height: 24.h),
             Text(
-              "Hatırlatma Günleri",
+              S.text('reminder_days'),
               style: TextStyle(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.bold,
@@ -687,7 +663,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Hatırlatma Saatleri",
+                  S.text('reminder_times'),
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -701,7 +677,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
                     });
                   },
                   icon: const Icon(Icons.add, size: 20),
-                  label: const Text("Ekle"),
+                  label: Text(S.text('add')),
                   style: TextButton.styleFrom(foregroundColor: Colors.blue),
                 ),
               ],
@@ -741,7 +717,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
                         Icon(Icons.access_time_filled, color: Colors.blue[400]),
                         SizedBox(width: 12.w),
                         Text(
-                          "${index + 1}. Hatırlatma",
+                          "${index + 1}${S.text('reminder_count')}",
                           style: TextStyle(
                             fontSize: 16.sp,
                             color: Colors.black54,
@@ -810,9 +786,9 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
                               );
                               await NotificationService.scheduleMedicineReminders(
                                 id: medicineToEdit.key as int,
-                                title: 'İlaç Zamanı: ${medicineToEdit.name}',
-                                body:
-                                    '$amount miktarında ilacınızı almayı unutmayın.',
+                                title:
+                                    '${S.text('medicine_time_notif')}: ${medicineToEdit.name}',
+                                body: '$amount ${S.text('notif_body')}',
                                 weekdays: medicineToEdit.weekdays,
                                 reminders: medicineToEdit.reminders ?? [],
                               );
@@ -827,9 +803,9 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
                               if (medicine.isInBox) {
                                 await NotificationService.scheduleMedicineReminders(
                                   id: medicine.key as int,
-                                  title: 'İlaç Zamanı: ${medicine.name}',
-                                  body:
-                                      '$amount miktarında ilacınızı almayı unutmayın.',
+                                  title:
+                                      '${S.text('medicine_time_notif')}: ${medicine.name}',
+                                  body: '$amount ${S.text('notif_body')}',
                                   weekdays: medicine.weekdays,
                                   reminders: medicine.reminders ?? [],
                                 );
@@ -840,7 +816,9 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Hata: $e')),
+                                SnackBar(
+                                  content: Text('${S.text('error')}: $e'),
+                                ),
                               );
                             }
                           } finally {
@@ -868,7 +846,7 @@ class _MedicineFormSheetState extends State<MedicineFormSheet> {
                         ),
                       )
                     : Text(
-                        isEditing ? "Güncelle" : "Kaydet",
+                        isEditing ? S.text('update') : S.text('save'),
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
