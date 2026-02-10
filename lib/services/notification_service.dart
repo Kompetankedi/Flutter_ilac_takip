@@ -5,6 +5,7 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'storage_service.dart';
+import '../models/reminder_time.dart';
 
 class NotificationService {
   static Future<void> init() async {
@@ -103,44 +104,96 @@ class NotificationService {
     }
   }
 
-  static Future<void> scheduleDailyNotification({
-    required int id,
+  static Future<void> scheduleMedicineReminders({
+    required int id, // medicineKey
     required String title,
     required String body,
-    required int hour,
-    required int minute,
+    required List<int>? weekdays,
+    required List<ReminderTime> reminders,
   }) async {
-    // Ensure time zone is local
     String localTimeZone = await AwesomeNotifications()
         .getLocalTimeZoneIdentifier();
 
-    debugPrint(
-      'Ex: Scheduling daily notification for ID: $id at $hour:$minute',
-    );
+    // Cancel existing first to be safe (or caller should do it)
+    await cancelAllMedicineReminders(id);
 
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: id,
-        channelKey: 'medication_channel',
-        title: title,
-        body: body,
-        notificationLayout: NotificationLayout.Default,
-        category: NotificationCategory.Alarm,
-        wakeUpScreen: true,
-        fullScreenIntent: true,
-        autoDismissible: false,
-      ),
-      schedule: NotificationCalendar(
-        hour: hour,
-        minute: minute,
-        second: 0,
-        millisecond: 0,
-        timeZone: localTimeZone,
-        repeats: true,
-        allowWhileIdle: true,
-        preciseAlarm: true,
-      ),
-    );
+    for (int i = 0; i < reminders.length; i++) {
+      final time = reminders[i];
+
+      if (weekdays == null || weekdays.isEmpty || weekdays.length == 7) {
+        // Daily
+        final notificationId = (id * 1000) + i;
+        await AwesomeNotifications().createNotification(
+          content: NotificationContent(
+            id: notificationId,
+            channelKey: 'medication_channel',
+            title: title,
+            body: body,
+            notificationLayout: NotificationLayout.Default,
+            category: NotificationCategory.Alarm,
+            wakeUpScreen: true,
+            fullScreenIntent: true,
+            autoDismissible: false,
+            payload: {'medicineId': id.toString()},
+          ),
+          schedule: NotificationCalendar(
+            hour: time.hour,
+            minute: time.minute,
+            second: 0,
+            millisecond: 0,
+            timeZone: localTimeZone,
+            repeats: true,
+            allowWhileIdle: true,
+            preciseAlarm: true,
+          ),
+        );
+      } else {
+        // Specific weekdays
+        for (final day in weekdays) {
+          final notificationId = (id * 1000) + (day * 10) + i;
+          await AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: notificationId,
+              channelKey: 'medication_channel',
+              title: title,
+              body: body,
+              notificationLayout: NotificationLayout.Default,
+              category: NotificationCategory.Alarm,
+              wakeUpScreen: true,
+              fullScreenIntent: true,
+              autoDismissible: false,
+              payload: {'medicineId': id.toString()},
+            ),
+            schedule: NotificationCalendar(
+              weekday: day,
+              hour: time.hour,
+              minute: time.minute,
+              second: 0,
+              millisecond: 0,
+              timeZone: localTimeZone,
+              repeats: true,
+              allowWhileIdle: true,
+              preciseAlarm: true,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  static Future<void> cancelAllMedicineReminders(int id) async {
+    // Cancel daily versions (0-99)
+    for (int i = 0; i < 100; i++) {
+      await AwesomeNotifications().cancel((id * 1000) + i);
+    }
+    // Cancel weekday versions (10-79)
+    for (int day = 1; day <= 7; day++) {
+      for (int i = 0; i < 10; i++) {
+        await AwesomeNotifications().cancel((id * 1000) + (day * 10) + i);
+      }
+    }
+    // Also cancel old style ID (if it was just 'id')
+    await AwesomeNotifications().cancel(id);
   }
 
   static Future<void> cancelNotification(int id) async {
@@ -198,7 +251,7 @@ class NotificationService {
   }
 
   static Future<void> cancelAllNotifications(int medicineId) async {
-    await cancelNotification(medicineId);
+    await cancelAllMedicineReminders(medicineId);
     await cancelNaggingNotifications(medicineId);
   }
 
@@ -210,21 +263,26 @@ class NotificationService {
     // Check if it's a medication reminder
     if (receivedNotification.channelKey == 'medication_channel' &&
         receivedNotification.id != null) {
-      // Avoid infinite loop: Check if this is ALREADY a nag (derived ID)
-      // Main IDs are likely < 10000. Nags are ID*100 + i.
-      // If we assume max medicine ID is 9999, then any ID > 1000000 might be a nag?
-      // Better: Store "isNag" in payload?
-      // payload: {'isNag': 'true'}
-
       if (receivedNotification.payload?['isNag'] == 'true') {
         return;
       }
 
       // It is a main notification. Schedule nagging.
-      int id = receivedNotification.id!;
+      // Get the medicineId from payload or derive it
+      int? medicineId;
+      if (receivedNotification.payload != null &&
+          receivedNotification.payload!['medicineId'] != null) {
+        medicineId = int.tryParse(receivedNotification.payload!['medicineId']!);
+      }
+
+      if (medicineId == null) {
+        // Fallback or derive from complex ID
+        // (id * 1000) + ...
+        medicineId = receivedNotification.id! ~/ 1000;
+        if (medicineId == 0) medicineId = receivedNotification.id!; // Old style
+      }
 
       // ENSURE BACKGROUND INITIALIZATION
-      // The background isolate starts fresh and might not have initialized Hive.
       try {
         if (!StorageService.getBox().isOpen) {
           await StorageService.init();
@@ -238,7 +296,7 @@ class NotificationService {
       // Check if medicine was already taken today
       try {
         final box = StorageService.getBox();
-        final medicine = box.get(id);
+        final medicine = box.get(medicineId);
         if (medicine != null) {
           final now = DateTime.now();
           bool alreadyTaken = medicine.log.any(
@@ -246,7 +304,7 @@ class NotificationService {
                 d.year == now.year && d.month == now.month && d.day == now.day,
           );
           if (alreadyTaken) {
-            debugPrint('Medicine $id already taken, skipping nags.');
+            debugPrint('Medicine $medicineId already taken, skipping nags.');
             return;
           }
         }
@@ -258,7 +316,7 @@ class NotificationService {
       String body = receivedNotification.body ?? 'İlacınızı almayı unutmayın!';
 
       await scheduleNaggingNotifications(
-        medicineId: id,
+        medicineId: medicineId,
         title: title,
         body: body,
       );

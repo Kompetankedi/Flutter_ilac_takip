@@ -23,13 +23,15 @@ class MedicineAdapter extends TypeAdapter<Medicine> {
       minute: fields[3] as int,
       isActive: fields[4] as bool,
       log: (fields[5] as List?)?.cast<DateTime>(),
+      weekdays: (fields[6] as List?)?.cast<int>(),
+      reminders: (fields[7] as List?)?.cast<ReminderTime>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Medicine obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -41,7 +43,11 @@ class MedicineAdapter extends TypeAdapter<Medicine> {
       ..writeByte(4)
       ..write(obj.isActive)
       ..writeByte(5)
-      ..write(obj.log);
+      ..write(obj.log)
+      ..writeByte(6)
+      ..write(obj.weekdays)
+      ..writeByte(7)
+      ..write(obj.reminders);
   }
 
   @override

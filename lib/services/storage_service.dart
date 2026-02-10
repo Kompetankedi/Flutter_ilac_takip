@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/medicine.dart';
+import '../models/reminder_time.dart';
 
 class StorageService {
   static const String boxName = 'medicines_box';
@@ -8,6 +9,7 @@ class StorageService {
   static Future<void> init() async {
     await Hive.initFlutter();
     Hive.registerAdapter(MedicineAdapter());
+    Hive.registerAdapter(ReminderTimeAdapter());
     await Hive.openBox<Medicine>(boxName);
     await Hive.openBox(settingsBoxName);
   }

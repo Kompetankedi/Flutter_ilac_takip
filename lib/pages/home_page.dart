@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../models/medicine.dart';
+import '../models/reminder_time.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
 
@@ -211,44 +212,63 @@ class _HomePageState extends State<HomePage> {
       text: isEditing ? medicineToEdit.name : '',
     );
 
+    final List<ReminderTime> initialReminders = isEditing
+        ? (medicineToEdit.reminders ??
+              [
+                ReminderTime(
+                  hour: medicineToEdit.hour,
+                  minute: medicineToEdit.minute,
+                ),
+              ])
+        : [ReminderTime(hour: 9, minute: 0)];
+
+    final List<int> initialWeekdays = isEditing
+        ? (medicineToEdit.weekdays ?? [])
+        : [];
+
     String initialAmount = '';
     String initialUnit = 'Tablet';
 
     if (isEditing) {
-      // Assuming format "Amount Unit"
       final parts = medicineToEdit.amount.split(' ');
       if (parts.isNotEmpty) initialAmount = parts[0];
       if (parts.length > 1) initialUnit = parts.sublist(1).join(' ');
     }
 
     final amountController = TextEditingController(text: initialAmount);
-    TimeOfDay selectedTime = isEditing
-        ? TimeOfDay(hour: medicineToEdit.hour, minute: medicineToEdit.minute)
-        : TimeOfDay.now();
 
-    String selectedUnit = initialUnit;
-    final List<String> units = [
-      'Tablet',
-      'mg',
-      'ml',
-      'Ölçek',
-      'Damla',
-      'Kapsül',
-      'Poşet',
+    final List<String> dayNames = [
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar',
     ];
-
-    if (!units.contains(selectedUnit)) {
-      if (units.any((u) => u == selectedUnit)) {
-      } else {
-        selectedUnit = 'Tablet';
-      }
-    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
+        List<ReminderTime> reminders = List.from(initialReminders);
+        List<int> selectedWeekdays = List.from(initialWeekdays);
+        String selectedUnit = initialUnit;
+        final List<String> units = [
+          'Tablet',
+          'mg',
+          'ml',
+          'Ölçek',
+          'Damla',
+          'Kapsül',
+          'Poşet',
+        ];
+
+        if (!units.contains(selectedUnit)) {
+          selectedUnit = 'Tablet';
+        }
+
         return StatefulBuilder(
           builder: (context, setStateModal) {
             return Container(
@@ -377,69 +397,159 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   SizedBox(height: 16.h),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: context,
-                        initialTime: selectedTime,
-                      );
-                      if (picked != null)
-                        setStateModal(() => selectedTime = picked);
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 16.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(16.r),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.access_time_filled,
-                            color: Colors.blue[400],
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Text(
-                              "Hatırlatma Saati",
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12.w,
-                              vertical: 6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              selectedTime.format(context),
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2196F3),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                  SizedBox(height: 24.h),
+                  Text(
+                    "Hatırlatma Günleri",
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey[700],
                     ),
                   ),
+                  SizedBox(height: 8.h),
+                  Column(
+                    children: [
+                      Wrap(
+                        spacing: 8.w,
+                        runSpacing: 8.h,
+                        children: List.generate(7, (index) {
+                          final day = index + 1;
+                          final isSelected = selectedWeekdays.contains(day);
+                          return FilterChip(
+                            label: Text(dayNames[index]),
+                            selected: isSelected,
+                            onSelected: (val) {
+                              setStateModal(() {
+                                if (selectedWeekdays.contains(day)) {
+                                  selectedWeekdays.remove(day);
+                                } else {
+                                  selectedWeekdays.add(day);
+                                }
+                              });
+                            },
+                            selectedColor: Colors.blue[100],
+                            checkmarkColor: Colors.blue,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.blue[700]
+                                  : Colors.black87,
+                              fontSize: 12.sp,
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Hatırlatma Saatleri",
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueGrey[700],
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setStateModal(() {
+                            reminders.add(ReminderTime(hour: 9, minute: 0));
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 20),
+                        label: const Text("Ekle"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  ...reminders.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final time = entry.value;
+                    final timeOfDay = TimeOfDay(
+                      hour: time.hour,
+                      minute: time.minute,
+                    );
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: 8.h),
+                      child: InkWell(
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: timeOfDay,
+                          );
+                          if (picked != null) {
+                            setStateModal(() {
+                              reminders[index] = ReminderTime(
+                                hour: picked.hour,
+                                minute: picked.minute,
+                              );
+                            });
+                          }
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 12.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_filled,
+                                color: Colors.blue[400],
+                              ),
+                              SizedBox(width: 12.w),
+                              Text(
+                                "${index + 1}. Hatırlatma",
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 6.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                                child: Text(
+                                  timeOfDay.format(context),
+                                  style: TextStyle(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF2196F3),
+                                  ),
+                                ),
+                              ),
+                              if (reminders.length > 1)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () {
+                                    setStateModal(() {
+                                      reminders.removeAt(index);
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                   SizedBox(height: 32.h),
                   SizedBox(
                     height: 56.h,
@@ -454,47 +564,49 @@ class _HomePageState extends State<HomePage> {
                               // Update existing
                               medicineToEdit.name = nameController.text;
                               medicineToEdit.amount = amount;
-                              medicineToEdit.hour = selectedTime.hour;
-                              medicineToEdit.minute = selectedTime.minute;
+                              medicineToEdit.weekdays = selectedWeekdays;
+                              medicineToEdit.reminders = reminders;
                               await medicineToEdit.save();
 
-                              await NotificationService.cancelAllNotifications(
+                              await NotificationService.cancelAllMedicineReminders(
                                 medicineToEdit.key as int,
                               );
-                              await NotificationService.scheduleDailyNotification(
+                              await NotificationService.scheduleMedicineReminders(
                                 id: medicineToEdit.key as int,
                                 title: 'İlaç Zamanı: ${medicineToEdit.name}',
                                 body:
                                     '$amount miktarında ilacınızı almayı unutmayın.',
-                                hour: medicineToEdit.hour,
-                                minute: medicineToEdit.minute,
+                                weekdays: medicineToEdit.weekdays,
+                                reminders: medicineToEdit.reminders ?? [],
                               );
                             } else {
                               // Add new
                               final medicine = Medicine(
                                 name: nameController.text,
                                 amount: amount,
-                                hour: selectedTime.hour,
-                                minute: selectedTime.minute,
+                                weekdays: selectedWeekdays,
+                                reminders: reminders,
                               );
                               await StorageService.addMedicine(medicine);
                               if (medicine.isInBox) {
-                                await NotificationService.scheduleDailyNotification(
+                                await NotificationService.scheduleMedicineReminders(
                                   id: medicine.key as int,
                                   title: 'İlaç Zamanı: ${medicine.name}',
                                   body:
                                       '$amount miktarında ilacınızı almayı unutmayın.',
-                                  hour: medicine.hour,
-                                  minute: medicine.minute,
+                                  weekdays: medicine.weekdays,
+                                  reminders: medicine.reminders ?? [],
                                 );
                               }
                             }
 
                             if (context.mounted) Navigator.pop(context);
                           } catch (e) {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(SnackBar(content: Text('Hata: $e')));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Hata: $e')),
+                              );
+                            }
                           }
                         }
                       },
@@ -584,7 +696,9 @@ class _HomePageState extends State<HomePage> {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: isTaken ? Colors.grey[50] : Colors.blue[50]?.withOpacity(0.3),
+        color: isTaken
+            ? Colors.grey[50]
+            : Colors.blue[50]?.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isTaken ? Colors.grey[300]! : Colors.blue[200]!,
@@ -616,9 +730,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMedicineCard(Medicine medicine, {bool isTaken = false}) {
-    final timeStr =
-        "${medicine.hour.toString().padLeft(2, '0')}:${medicine.minute.toString().padLeft(2, '0')}";
-
     return Dismissible(
       key: Key(medicine.key.toString()),
       background: Container(
@@ -688,9 +799,44 @@ class _HomePageState extends State<HomePage> {
                 decoration: isTaken ? TextDecoration.lineThrough : null,
               ),
             ),
-            subtitle: Text(
-              "${medicine.amount} - $timeStr",
-              style: TextStyle(fontSize: 14.sp),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(medicine.amount, style: TextStyle(fontSize: 14.sp)),
+                SizedBox(height: 4.h),
+                Wrap(
+                  spacing: 4.w,
+                  children: [
+                    ...(medicine.reminders ??
+                            [
+                              ReminderTime(
+                                hour: medicine.hour,
+                                minute: medicine.minute,
+                              ),
+                            ])
+                        .map(
+                          (t) => Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6.w,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
+                            child: Text(
+                              "${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}",
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ],
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,

@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'reminder_time.dart';
 
 part 'medicine.g.dart';
 
@@ -11,10 +12,10 @@ class Medicine extends HiveObject {
   String amount; // "1 Tablet", "500 mg" etc.
 
   @HiveField(2)
-  int hour;
+  int hour; // Deprecated: use reminders
 
   @HiveField(3)
-  int minute;
+  int minute; // Deprecated: use reminders
 
   @HiveField(4)
   bool isActive;
@@ -22,12 +23,20 @@ class Medicine extends HiveObject {
   @HiveField(5)
   List<DateTime> log;
 
+  @HiveField(6)
+  List<int>? weekdays; // 1=Mon, 7=Sun. null/empty = all days
+
+  @HiveField(7)
+  List<ReminderTime>? reminders;
+
   Medicine({
     required this.name,
     required this.amount,
-    required this.hour,
-    required this.minute,
+    this.hour = 9,
+    this.minute = 0,
     this.isActive = true,
     List<DateTime>? log,
+    this.weekdays,
+    this.reminders,
   }) : log = log ?? [];
 }
