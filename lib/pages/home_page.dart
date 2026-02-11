@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import '../models/medicine.dart';
 import '../models/reminder_time.dart';
@@ -117,6 +118,39 @@ class _HomePageState extends State<HomePage> {
                   },
                   child: Text(S.text('go_to_autostart')),
                 ),
+                FutureBuilder<bool>(
+                  future: () async {
+                    if (Platform.isAndroid) {
+                      final deviceInfo = DeviceInfoPlugin();
+                      final androidInfo = await deviceInfo.androidInfo;
+                      return androidInfo.manufacturer.toLowerCase().contains(
+                        'xiaomi',
+                      );
+                    }
+                    return false;
+                  }(),
+                  builder: (context, snapshot) {
+                    if (snapshot.data == true) {
+                      return Padding(
+                        padding: EdgeInsets.only(top: 8.h),
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (dontShowAgain) {
+                              await StorageService.setBatteryWarningShown(true);
+                            }
+                            await NotificationService.openBatterySaverSettings();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange[100],
+                            foregroundColor: Colors.orange[900],
+                          ),
+                          child: Text(S.text('go_to_xiaomi_battery')),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
                 ElevatedButton(
                   onPressed: () async {
                     if (dontShowAgain) {
@@ -179,7 +213,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {});
   }
 
-  void _deleteMedicine(Medicine medicine) async {
+  Future<bool> _deleteMedicine(Medicine medicine) async {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -206,7 +240,9 @@ class _HomePageState extends State<HomePage> {
         await NotificationService.cancelAllNotifications(medicine.key as int);
       }
       await StorageService.deleteMedicine(medicine);
+      return true;
     }
+    return false;
   }
 
   void _showMedicineDialog({Medicine? medicineToEdit}) {
@@ -341,8 +377,7 @@ class _HomePageState extends State<HomePage> {
       ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          _deleteMedicine(medicine);
-          return true;
+          return await _deleteMedicine(medicine);
         } else {
           _showMedicineDialog(medicineToEdit: medicine);
           return false;

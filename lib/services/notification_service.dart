@@ -60,22 +60,26 @@ class NotificationService {
     }
 
     // Precise Alarms (Exact Alarms) - Android 12+
-    // Check if it's already allowed to avoid the settings loop
     List<NotificationPermission> allowed = await AwesomeNotifications()
         .checkPermissionList(
           permissions: [NotificationPermission.PreciseAlarms],
         );
 
     if (!allowed.contains(NotificationPermission.PreciseAlarms)) {
-      // Only show if not already granted.
       await AwesomeNotifications().showAlarmPage();
     }
 
     // 3. Battery Optimizations
-    // Check if we are already ignoring battery optimizations
-    bool isIgnoring = await Permission.ignoreBatteryOptimizations.isGranted;
-    if (!isIgnoring) {
-      // We don't want to redirect unconditionally here because it's invasive.
+    await requestIgnoreBatteryOptimizations();
+  }
+
+  static Future<void> requestIgnoreBatteryOptimizations() async {
+    if (Platform.isAndroid) {
+      bool isIgnoring = await Permission.ignoreBatteryOptimizations.isGranted;
+      if (!isIgnoring) {
+        // This will open the system dialog or settings page
+        await Permission.ignoreBatteryOptimizations.request();
+      }
     }
   }
 
@@ -98,9 +102,85 @@ class NotificationService {
         } catch (e) {
           debugPrint('Could not launch Xiaomi auto-start settings: $e');
         }
+      } else if (manufacturer.contains('oppo') ||
+          manufacturer.contains('realme')) {
+        const intent = AndroidIntent(
+          action:
+              'com.coloros.safecenter.permission.startup.StartupAppListActivity',
+          package: 'com.coloros.safecenter',
+        );
+        try {
+          await intent.launch();
+          return;
+        } catch (e) {
+          debugPrint('Could not launch Oppo/Realme auto-start settings: $e');
+        }
+      } else if (manufacturer.contains('vivo')) {
+        const intent = AndroidIntent(
+          action: 'com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity',
+          package: 'com.iqoo.secure',
+        );
+        try {
+          await intent.launch();
+          return;
+        } catch (e) {
+          debugPrint('Could not launch Vivo auto-start settings: $e');
+        }
+      } else if (manufacturer.contains('huawei')) {
+        const intent = AndroidIntent(
+          action: 'action_main',
+          package: 'com.huawei.systemmanager',
+          componentName:
+              'com.huawei.systemmanager.optimize.process.ProtectActivity',
+        );
+        try {
+          await intent.launch();
+          return;
+        } catch (e) {
+          debugPrint('Could not launch Huawei protect settings: $e');
+        }
       }
 
       // Fallback for other manufacturers or if specific intent fails
+      await openAppSettings();
+    }
+  }
+
+  static Future<void> openBatterySaverSettings() async {
+    if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      final manufacturer = androidInfo.manufacturer.toLowerCase();
+
+      if (manufacturer.contains('xiaomi')) {
+        const intent = AndroidIntent(
+          action: 'miui.intent.action.POWER_HIDE_MODE_APP_LIST',
+          package: 'com.miui.securitycenter',
+          componentName: 'com.miui.powercenter.hilpst.AppOptionsActivity',
+          arguments: {
+            'package_name': 'com.example.ilac_takip',
+            'package_label': 'MyHealty',
+          },
+        );
+        try {
+          await intent.launch();
+          return;
+        } catch (e) {
+          debugPrint('Could not launch Xiaomi battery saver settings: $e');
+          // Fallback to general power center
+          const intentFallback = AndroidIntent(
+            action: 'action_main',
+            package: 'com.miui.securitycenter',
+            componentName: 'com.miui.powercenter.PowerCenterActivity',
+          );
+          try {
+            await intentFallback.launch();
+            return;
+          } catch (_) {}
+        }
+      }
+
+      // Fallback to regular app settings where battery is usually located
       await openAppSettings();
     }
   }
